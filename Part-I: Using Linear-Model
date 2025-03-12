@@ -1,0 +1,75 @@
+#train_test_split and LinearRegression()
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+import seaborn as sns
+import yfinance as yf
+from sklearn.metrics import mean_absolute_error,mean_squared_error
+
+ticker='AAPL'
+stock=yf.Ticker(ticker)
+df=stock.history(period='5y',interval='1d')
+
+df.reset_index(inplace=True)
+df.rename(columns={'Date':'date'},inplace=True)
+
+df['Days']=(df['date']-df['date'].min()).dt.days
+
+features=df[['Days','Open','High','Low','Volume']]
+target=df['Close']
+
+lm=LinearRegression()
+x_train,x_test,y_train,y_test=train_test_split(features,target,test_size=0.2,random_state=42)
+lm.fit(x_train,y_train)
+pred=lm.predict(x_test)
+
+mae=mean_absolute_error(y_test,pred)
+mse=mean_squared_error(y_test,pred)
+rmse=np.sqrt(mse)
+
+tomorrow=pd.DataFrame({
+    'Days':[df['Days'].iloc[-1]+1],
+    'Open':[df['Open'].iloc[-1]],
+    'High':[df['High'].iloc[-1]],
+    'Low':[df['Low'].iloc[-1]],
+    'Volume':[df['Volume'].iloc[-1]]
+})
+Expred=lm.predict(tomorrow)
+
+print(df.tail())
+print('MAE:',mae)
+print('MSE:',mse)
+print('RMSE:',rmse)
+print('Expected Closing price for tomorrow:', Expred[0])
+
+plt.figure(figsize=(16,5))
+plt.plot(y_test.values,color='r',label='Actual Values')
+plt.plot(pred,color='y', linestyle='dashed')
+plt.plot(Expred,color='b',marker='+',label='expected closing price for tomorrow')
+plt.legend()
+plt.show()
+
+
+# output
+
+  date        Open        High         Low  \
+1251 2025-03-05 00:00:00-05:00  235.419998  236.550003  229.229996   
+1252 2025-03-06 00:00:00-05:00  234.440002  237.860001  233.160004   
+1253 2025-03-07 00:00:00-05:00  235.110001  241.369995  234.759995   
+1254 2025-03-10 00:00:00-04:00  235.539993  236.160004  224.220001   
+1255 2025-03-11 00:00:00-04:00  223.809998  225.839996  217.449997   
+
+           Close    Volume  Dividends  Stock Splits  Days  
+1251  235.740005  47227600        0.0           0.0  1819  
+1252  235.330002  45170400        0.0           0.0  1820  
+1253  239.070007  46273600        0.0           0.0  1821  
+1254  227.479996  72071200        0.0           0.0  1824  
+1255  220.839996  76087700        0.0           0.0  1825  
+MAE: 0.7523961792702765
+MSE: 1.16307307130084
+RMSE: 1.0784586553507
+Expected Closing price for tomorrow: 220.2998754019728
